@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# output a list of all CIDR blocks that contain the supplied IP address.
+# start with /32 and get bigger (smaller mask) until the limit is reached.
+# by default enumerates every CIDR inside an old-style Class B subnet,
+# but that's changeable
+
+# Relies on sipcalc(1) or ipcalc(1) for actual CIDR calculations.
+# net=`sipcalc  $IP/$i|grep 'Network address' | cut -c20-`
+# ipcalc $IP/$i | awk '/Network/{print $2}'
+
+# cidrblocks 192.168.8.8 	list everything from 192.168.8.8/32 through 192.168.0.0/16
+# cidrblocks 192.168.8.8 24	list everything from 192.168.8.8/32 through 192.168.8.0/24
+
+IP=$1
+MASK=${2:-16}	#default /16 unless specified
+
+for (( i=32; i>=$MASK; i-- )); do
+	ipcalc $IP/$i | awk '/Network/{print $2}'
+	#net=`sipcalc  $IP/$i|grep 'Network address' | cut -c20-`
+	#echo "$net/$i"
+done
