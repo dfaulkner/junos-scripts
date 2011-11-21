@@ -1,0 +1,91 @@
+#!/bin/bash
+# policies-by-ip - show junos policies for a particular IP.
+# 
+# Read a junos config file in "display set" format and output a list
+# of policies that affect a given IP address based on source & destination zone.
+# For now, the IP is assumed the destination. We'll probably add a
+# source option eventually.
+
+IAM=$(basename $0)
+
+# Global settings.
+
+# Defaults, to be overridden by getopts below
+FILE=current
+MASK=16
+FROM_ZONE="[^ ]+"
+TO_ZONE="[^ ]+"
+
+
+usage ()
+{
+	echo -e "usage: ${IAM} [ -h ] -f from -t to ( -d destination ) config"
+	echo -e ""
+	echo -e "  -h\t: display this help"
+	echo -e "  -f\t: match policies affecting flows from this zone (from-zone)"
+	echo -e "  -t\t: match policies affecting flows to this zone (to-zone)"
+	echo -e "  -d\t: match this destination IP (destination-address)"
+	#echo -e "  -s\t: match this source IP (source-address)" #future 
+	echo -e ""
+	echo -e "  IP addresses must be specified in dotted-quad format with and optional netmask"
+	echo -e "  e.g. 127.0.0.1 or 127.0.0.1/24"
+	echo -e "  If not specified, the netmask defaults to $MASK."
+}
+
+
+while getopts :hd:f:t: option; do
+	case "${option}" in
+		h)	usage
+			exit 0
+			;;
+		d)	# match address/mask first, then address alone.
+			if [[ "${OPTARG}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,2}$ ]]
+			then
+				IP=$(echo $OPTARG | cut -d/ -f1)
+				MASK=$(echo $OPTARG | cut -d/ -f2)
+			elif [[ "${OPTARG}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]
+			then
+				IP=$(echo $OPTARG | cut -d/ -f1)
+			else
+				exec >&2
+				echo "${IAM}: ${OPTION} must specify an IP address with optional /mask"
+				exit 1				
+			fi
+			;;
+		f)	# should we test for a valid zone?
+			FROM_ZONE="${OPTARG}"
+			;;
+		t)	# should we test for a valid zone?
+			TO_ZONE="${OPTARG}"
+			;;
+		:)	exec >&2
+			echo "${IAM} option -{$OPTARG} requires and argument."
+			usage
+			exit 1
+			;;
+		\?)	exec >&2
+			echo "${IAM}: invalid option -{$OPTARG}."
+			usage
+			exit 1
+			;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+if [ -f $1 ]; then 
+	FILE=$1
+fi
+
+if [[ ! $IP ]]; then
+	exec >&2
+	echo -e "${IAM}: must specify and IP address."
+	exit 1
+fi
+
+echo -en "$IP\t"
+for i in `cidrblocks $IP $MASK`; do egrep "${TO_ZONE} address-book.*$i" $FILE \
+	| awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO ".*destination-address " $8}' \
+	| egrep -f - $FILE | awk '{print $9}' | tr '\n' ' '
+done
+echo
+
