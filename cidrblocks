@@ -16,7 +16,6 @@ IP=$1
 MASK=${2:-16}	#default /16 unless specified
 
 for (( i=32; i>=$MASK; i-- )); do
-	ipcalc $IP/$i | awk '/Network/{print $2}'
-	#net=`sipcalc  $IP/$i|grep 'Network address' | cut -c20-`
-	#echo "$net/$i"
+	net=`sipcalc  $IP/$i | awk '/Network address/{print $4}'
+	echo "$net/$i"
 done
