@@ -26,6 +26,7 @@ usage ()
 	echo -e "  -t\t: match policies affecting flows to this zone (to-zone)"
 	echo -e "  -d\t: match this destination IP (destination-address)"
 	#echo -e "  -s\t: match this source IP (source-address)" #future 
+	echo -e "  -z\t: include from/to zone labels in output"
 	echo -e ""
 	echo -e "  IP addresses must be specified in dotted-quad format with and optional netmask"
 	echo -e "  e.g. 127.0.0.1 or 127.0.0.1/24"
@@ -57,6 +58,8 @@ while getopts :hd:f:t:z option; do
 			;;
 		t)	# test for valid zone below, because we don't know the file yet
 			TO_ZONE="${OPTARG}"
+			;;
+		z)	PRINT_ZONES=true
 			;;
 		:)	exec >&2
 			echo "${IAM} option -{$OPTARG} requires and argument."
@@ -94,7 +97,9 @@ if ! $(grep -q "security zones security-zone ${TO_ZONE}" ${FILE}); then
 fi
 
 
-echo -en "$IP \t"
+echo -en "$IP"
+[ $PRINT_ZONES ] && echo -en "(${FROM_ZONE}:${TO_ZONE})"
+echo -en "\t"
 for i in `cidrblocks $IP $MASK`; do egrep "${TO_ZONE} address-book.*$i" ${FILE} \
 	| awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO ".*destination-address " $8}' \
 	| egrep -f - ${FILE} | awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO " policy " $9 " then permit"}' \

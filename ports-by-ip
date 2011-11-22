@@ -40,18 +40,24 @@ fi
 FILE="${FILE} ${JUNOS_DEFAULTS}"
 
 while read ip policies; do
-	echo -en "$ip \t"
+	echo -en "$ip\t"
+	if [[ "${ip}" =~ ":" ]]; then 
+		FROM_ZONE=$(echo ${ip} | awk -F '[:()]' '{print $2}')
+		TO_ZONE=$(echo ${ip} | awk -F '[:()]' '{print $3}')
+		ZONE_FILTER="from-zone ${FROM_ZONE} to-zone ${TO_ZONE}"
+		ip=$(echo ${ip} | awk -F '[:()]' '{print $1}')
+	fi
 	# any
-	app0=$( for p in $policies; do egrep "set secrity.*policy $p match application any" ${FILE} \
+	app0=$( for p in $policies; do egrep "set security.*${ZONE_FILTER}.*policy $p match application any" ${FILE} \
 		| egrep -o ' any$'
 	done)
 	# application
-	app1=$(for p in $policies; do egrep "set security.*policy $p match application" ${FILE} \
+	app1=$(for p in $policies; do egrep "set security.*${ZONE_FILTER}.*policy $p match application" ${FILE} \
 		| awk '{print "applications.*application " $12 ".*destination-port"}' \
 		| egrep -f - ${FILE} | egrep -o '[0-9-]+$'
 	done)
 	# application-set
-	app2=$(for p in $policies; do egrep "set security.*policy $p match application" ${FILE} \
+	app2=$(for p in $policies; do egrep "set security.*${ZONE_FILTER}.*policy $p match application" ${FILE} \
 		| awk '{print "applications.*application-set " $12 }' \
 		| egrep -f - ${FILE} | awk '{print "applications.*application " $6 ".*destination-port"}' \
 		| egrep -f - ${FILE} | egrep -o '[0-9-]+$'
