@@ -62,23 +62,21 @@ while read ip policies; do
 		| egrep -f - ${FILE} | awk '{print "applications.*application " $6 ".*destination-port"}' \
 		| egrep -f - ${FILE} | egrep -o '[0-9-]+$'
 	done)
+	for port in $app0 $app1 $app2; do
+		if [[ "${port}" == "any" ]]; then
+			for i in {1..65535}; do 
+				echo $i;
+			done
+			break	# obviously all ports, so no need calc the rest.	
+		elif [[ "${port}" =~ \- ]]; then
+			A=$(echo $port | cut -d- -f1)
+			B=$(echo $port | cut -d- -f2)
+			for i in $(eval echo "{$A..$B}"); do
+				echo $i;
+			done
+		else
+			echo $port
+		fi
+	done | sort -n |uniq | tr '\n' ' '
+	echo
 done
-
-for port in $app0 $app1 $app2; do
-	if [[ "${port}" == "any" ]]; then
-		for i in {1..65535}; do 
-			echo $i;
-		done
-		break	# obviously all ports, so no need calc the rest.	
-	elif [[ "${port}" =~ \- ]]; then
-		A=$(echo $port | cut -d- -f1)
-		B=$(echo $port | cut -d- -f2)
-		for i in $(eval echo "{$A..$B}"); do
-			echo $i;
-		done
-	else
-		echo $port
-	fi
-done | sort -n |uniq | tr '\n' ' '
-echo
-
