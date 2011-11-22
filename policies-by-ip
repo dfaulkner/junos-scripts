@@ -72,8 +72,8 @@ while getopts :hd:f:t: option; do
 done
 shift $(($OPTIND - 1))
 
-if [ -f $1 ]; then 
-	FILE=$1
+if [ -f "$1" ]; then 
+	FILE="$1"
 fi
 
 if [[ ! $IP ]]; then
@@ -83,9 +83,13 @@ if [[ ! $IP ]]; then
 fi 
 
 echo -en "$IP \t"
-for i in `cidrblocks $IP $MASK`; do egrep "${TO_ZONE} address-book.*$i" $FILE \
+for i in `cidrblocks $IP $MASK`; do egrep "${TO_ZONE} address-book.*$i" ${FILE} \
 	| awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO ".*destination-address " $8}' \
-	| egrep -f - $FILE | awk '{print $9}' | tr '\n' ' '
+	| egrep -f - ${FILE} | awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO " policy " $9 " then permit"}' \
+	| egrep -f - ${FILE} | awk '{print $9}' | tr '\n' ' '
 done
+egrep "${FROM_ZONE} to-zone ${TO_ZONE}.*destination-address any" ${FILE} \
+	| egrep -f - ${FILE} | awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO " policy " $9 " then permit"}' \
+	| awk '{print $9}' | tr '\n' ' '
 echo
 
