@@ -34,6 +34,7 @@ usage ()
 
 
 while read ip policies; do
+	echo -en "$IP \t"
 	# application
 	app1=$(for p in $policies; do egrep "set security.*policy $p match application" current \
 		| awk '{print "set applications application " $12 ".*destination-port"}' \
