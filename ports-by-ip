@@ -1,0 +1,60 @@
+#!/bin/bash
+# ports-by-ip - show destination ports permitted for a particular IP.
+# 
+# Read a junos config file in "display set" format and output a list
+# of policies that affect a given IP address based on source & destination zone.
+# For now, the IP is assumed the destination. We'll probably add a
+# source option eventually.
+
+IAM=$(basename $0)
+
+# Global settings.
+
+# Defaults, to be overridden by getopts below
+FILE=current
+MASK=16
+FROM_ZONE="[^ ]+"
+TO_ZONE="[^ ]+"
+
+
+usage ()
+{
+	echo -e "usage: ${IAM} [ -h ] -f from -t to ( -d destination ) config"
+	echo -e ""
+	echo -e "  -h\t: display this help"
+	echo -e "  -f\t: match policies affecting flows from this zone (from-zone)"
+	echo -e "  -t\t: match policies affecting flows to this zone (to-zone)"
+	echo -e "  -d\t: match this destination IP (destination-address)"
+	#echo -e "  -s\t: match this source IP (source-address)" #future 
+	echo -e ""
+	echo -e "  IP addresses must be specified in dotted-quad format with and optional netmask"
+	echo -e "  e.g. 127.0.0.1 or 127.0.0.1/24"
+	echo -e "  If not specified, the netmask defaults to $MASK."
+}
+
+
+while read ip policies; do
+	# application
+	app1=$(for p in $policies; do egrep "set security.*policy $p match application" current \
+		| awk '{print "set applications application " $12 ".*destination-port"}' \
+		| egrep -f - current | egrep -o '[0-9-]+$'
+	done)
+	# application-set
+	app2=$(for p in $policies; do egrep "set security.*policy $p match application" current \
+		| awk '{print "set applications application-set " $12 }' \
+		| egrep -f - current | awk '{print "set applications application " $6 ".*destination-port"}' \
+		| egrep -f - current | egrep -o '[0-9-]+$'
+	done)
+done
+
+for port in $app1 $app2; do
+	if [[ "${port}" =~ \- ]]; then
+		A=$(echo $port | cut -d- -f1)
+		B=$(echo $port | cut -d- -f2)
+		for i in $(eval echo "{$A..$B}"); do
+			echo $i;
+		done
+	else
+		echo $port
+	fi
+done | sort -n |uniq | tr '\n' ' '

@@ -80,9 +80,9 @@ if [[ ! $IP ]]; then
 	exec >&2
 	echo -e "${IAM}: must specify and IP address."
 	exit 1
-fi
+fi 
 
-echo -en "$IP\t"
+echo -en "$IP \t"
 for i in `cidrblocks $IP $MASK`; do egrep "${TO_ZONE} address-book.*$i" $FILE \
 	| awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO ".*destination-address " $8}' \
 	| egrep -f - $FILE | awk '{print $9}' | tr '\n' ' '
