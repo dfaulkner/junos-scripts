@@ -19,7 +19,7 @@ TO_ZONE="[^ ]+"
 
 usage ()
 {
-	echo -e "usage: ${IAM} [ -h ] -f from -t to ( -d destination ) config"
+	echo -e "usage: ${IAM} [ -h ] [ -z ]-f from -t to ( -d destination ) config"
 	echo -e ""
 	echo -e "  -h\t: display this help"
 	echo -e "  -f\t: match policies affecting flows from this zone (from-zone)"
@@ -33,7 +33,7 @@ usage ()
 }
 
 
-while getopts :hd:f:t: option; do
+while getopts :hd:f:t:z option; do
 	case "${option}" in
 		h)	usage
 			exit 0
@@ -48,14 +48,14 @@ while getopts :hd:f:t: option; do
 				IP=$(echo $OPTARG | cut -d/ -f1)
 			else
 				exec >&2
-				echo "${IAM}: ${OPTION} must specify an IP address with optional /mask"
+				echo "${IAM}: -${option} must specify an IP address with optional /mask"
 				exit 1				
 			fi
 			;;
-		f)	# should we test for a valid zone?
+		f)	# test for valid zone below, because we don't know the file yet
 			FROM_ZONE="${OPTARG}"
 			;;
-		t)	# should we test for a valid zone?
+		t)	# test for valid zone below, because we don't know the file yet
 			TO_ZONE="${OPTARG}"
 			;;
 		:)	exec >&2
@@ -81,6 +81,18 @@ if [[ ! $IP ]]; then
 	echo -e "${IAM}: must specify and IP address."
 	exit 1
 fi 
+
+if ! $(grep -q "security zones security-zone ${FROM_ZONE}" ${FILE}); then
+	exec >&2
+	echo -e "${IAM}: zone ${FROM_ZONE} not found in ${FILE}."
+	exit 1
+fi
+if ! $(grep -q "security zones security-zone ${TO_ZONE}" ${FILE}); then
+	exec >&2
+	echo -e "${IAM}: zone ${TO_ZONE} not found in ${FILE}."
+	exit 1
+fi
+
 
 echo -en "$IP \t"
 for i in `cidrblocks $IP $MASK`; do egrep "${TO_ZONE} address-book.*$i" ${FILE} \
