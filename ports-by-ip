@@ -11,6 +11,7 @@ IAM=$(basename $0)
 # Global settings.
 
 # Defaults, to be overridden by getopts below
+JUNOS_DEFAULTS=junos-defaults-set.cfg
 FILE=current
 MASK=16
 FROM_ZONE="[^ ]+"
@@ -32,19 +33,24 @@ usage ()
 	echo -e "  If not specified, the netmask defaults to $MASK."
 }
 
+if [ -f "$1" ]; then
+	FILE=$1
+fi
+
+FILE="${FILE} ${JUNOS_DEFAULTS}"
 
 while read ip policies; do
-	echo -en "$IP \t"
+	echo -en "$ip \t"
 	# application
-	app1=$(for p in $policies; do egrep "set security.*policy $p match application" current \
-		| awk '{print "set applications application " $12 ".*destination-port"}' \
-		| egrep -f - current | egrep -o '[0-9-]+$'
+	app1=$(for p in $policies; do egrep "set security.*policy $p match application" ${FILE} \
+		| awk '{print "applications.*application " $12 ".*destination-port"}' \
+		| egrep -f - ${FILE} | egrep -o '[0-9-]+$'
 	done)
 	# application-set
-	app2=$(for p in $policies; do egrep "set security.*policy $p match application" current \
-		| awk '{print "set applications application-set " $12 }' \
-		| egrep -f - current | awk '{print "set applications application " $6 ".*destination-port"}' \
-		| egrep -f - current | egrep -o '[0-9-]+$'
+	app2=$(for p in $policies; do egrep "set security.*policy $p match application" ${FILE} \
+		| awk '{print "applications.*application-set " $12 }' \
+		| egrep -f - ${FILE} | awk '{print "applications.*application " $6 ".*destination-port"}' \
+		| egrep -f - ${FILE} | egrep -o '[0-9-]+$'
 	done)
 done
 
@@ -59,3 +65,5 @@ for port in $app1 $app2; do
 		echo $port
 	fi
 done | sort -n |uniq | tr '\n' ' '
+echo
+
