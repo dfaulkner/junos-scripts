@@ -1,0 +1,43 @@
+#!/bin/bash
+# zoneips - show all IP addresses or networks in a zone
+# 
+
+IAM=$(basename $0)
+
+# Global settings.
+
+# Defaults, to be overridden by getopts below
+FILE=current
+
+usage ()
+{
+	echo -e "usage: ${IAM} [ zone ] [ config ]"
+	echo -e ""
+	echo -e "  -h\t: display this help"
+}
+
+while getopts :h option; do
+	case "${option}" in
+		h)	usage
+			exit 0
+			;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+ZONE=$1
+
+sortip()
+{
+	sort -n -t. -k1,1 -k2,2 -k3,3 -k4,4
+}
+
+# the basic idea:
+grep "security zones security-zone $ZONE.*interfaces" ${FILE} | awk '{print $7}' \
+	| awk -F. '{print "interfaces " $1 " unit " $2 " family inet address"}' \
+	| grep -f - ${FILE} | awk '{print $9}' \
+	| while read ip; do
+		baseip="$(sipcalc $ip | grep 'Network address' | awk -F- '{print $2}')/$(echo $ip | awk -F/ '{print $2}')"
+		echo $baseip
+	done | sortip
+	
