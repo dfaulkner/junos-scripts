@@ -19,7 +19,7 @@ TO_ZONE="[^ ]+"
 
 usage ()
 {
-	echo -e "usage: ${IAM} [ -h ] [ -z ]-f from -t to ( -d destination ) config"
+	echo -e "usage: ${IAM} [ -h ] [ -z ] -f from -t to ( -d destination ) config"
 	echo -e ""
 	echo -e "  -h\t: display this help"
 	echo -e "  -f\t: match policies affecting flows from this zone (from-zone)"
@@ -108,5 +108,6 @@ done
 egrep "${FROM_ZONE} to-zone ${TO_ZONE}.*destination-address any" ${FILE} \
 	| egrep -f - ${FILE} | awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO " policy " $9 " then permit"}' \
 	| awk '{print $9}' | tr '\n' ' '
-echo
+echo;
+
 

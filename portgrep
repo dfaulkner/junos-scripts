@@ -1,0 +1,86 @@
+#!/bin/bash
+# portgrep - return all IP addresses that have a port open
+# 
+# Read the output of one or more ports-by-ip dumps, 
+# each named ports-* and return all the IP addresses that have
+# the specified port open in the originating config
+
+IAM=$(basename $0)
+
+# Global settings
+PORTFILES='ports-*'
+
+# Defaults
+COMPOSITION="OR"
+
+usage ()
+{
+	echo -e "Usage: ${IAM} [ -(a|o) ] port [ port ... ]"
+	echo -e ""
+	echo -e "  -h\t: display this help"
+	echo -e "  port\t: a port to search for"
+	echo -e "\t(multiple ports may be specified in any order)"
+	echo -e "  -a\t: AND ports together. IP must have ALL listed ports permitted"
+	echo -e "  -o\t: (default) OR ports together. IP must have at least one listed port pemitted "
+	echo -e ""
+	echo -e "Examples:"
+	echo -e ""
+	echo -e "  ${IAM} 80"
+	echo -e "\tsearch for any IP with port 80 open"
+	echo -e "  ${IAM} 80 443"
+	echo -e "\tsearch for any IP with ports 80 OR 443 open"
+	echo -e "  ${IAM} -o 80 443"
+	echo -e "\tsearch for any IP with ports 80 OR 443 open (same as no argument)"
+	echo -e "  ${IAM} -a 80 443"
+	echo -e "\tsearch for any IP with ports 80 AND 443 open"
+	
+}
+
+while getopts :hao option; do
+	case "${option}" in
+		h)	usage
+			exit 0
+			;;
+		a)	COMPOSITION="AND"
+			;;
+		o)	COMPOSITION="OR"
+			;;
+		:)	exec >&2
+			echo "${IAM} option -{$OPTARG} requires and argument."
+			usage
+			exit 1
+			;;
+		\?)	exec >&2
+			echo "${IAM}: invalid option -{$OPTARG}."
+			usage
+			exit 1
+			;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+PORTS=$@
+if [ ! "$PORTS" ]; then
+	exec >&2
+	echo "${IAM} needs at least one port to search for"
+	usage
+	exit 1
+fi
+
+for i in $PORTS; do
+	if [[ ! "$i" =~ ^[0-9]{1,5}$ ]]; then
+		exec >&2
+		echo "${IAM}: $i is not a valid TCP/UDP port."
+		exit 1
+	fi
+done
+
+PORTS=$(echo $PORTS | tr ' ' '\n' | sort -nu)
+if [[ "${COMPOSITION}" == "AND" ]]; then
+	REGEX=" $(echo $PORTS | sed 's/ / .* /g') "
+else #default is OR
+	REGEX=" ($(echo $PORTS | sed 's/ /|/g')) "
+fi
+
+#echo "[$REGEX]"
+egrep "$REGEX" $PORTFILES | awk '{print $1}'
