@@ -1,10 +1,8 @@
 #!/bin/bash
 # ports-by-ip - show destination ports permitted for a particular IP.
 # 
-# Read a junos config file in "display set" format and output a list
-# of policies that affect a given IP address based on source & destination zone.
-# For now, the IP is assumed the destination. We'll probably add a
-# source option eventually.
+# Read the output of policies-by-ip and output a list of ports that the 
+# listed policies permit to the given IP address. 
 
 IAM=$(basename $0)
 
@@ -13,25 +11,37 @@ IAM=$(basename $0)
 # Defaults, to be overridden by getopts below
 JUNOS_DEFAULTS=junos-defaults-set.cfg
 FILE=current
-MASK=16
-FROM_ZONE="[^ ]+"
-TO_ZONE="[^ ]+"
-
 
 usage ()
 {
-	echo -e "usage: ${IAM} [ -h ] -f from -t to ( -d destination ) config"
+	echo -e "usage:\tcat policy-list | ${IAM} [config]"
+	echo -e "\tpolices-by-ip ... | ${IAM} [config]"
+	echo -e ""
+	echo -e "Read the policies for each IP and output a list of ports permitted."
 	echo -e ""
 	echo -e "  -h\t: display this help"
-	echo -e "  -f\t: match policies affecting flows from this zone (from-zone)"
-	echo -e "  -t\t: match policies affecting flows to this zone (to-zone)"
-	echo -e "  -d\t: match this destination IP (destination-address)"
-	#echo -e "  -s\t: match this source IP (source-address)" #future 
-	echo -e ""
-	echo -e "  IP addresses must be specified in dotted-quad format with and optional netmask"
-	echo -e "  e.g. 127.0.0.1 or 127.0.0.1/24"
-	echo -e "  If not specified, the netmask defaults to $MASK."
+	echo -e "  policy-list\t: output from policies-by-ip"
+	echo -e "  config\t: configuration file to read from. (default is \"${FILE}\")"
 }
+
+while getopts :h option; do
+	case "${option}" in
+		h)	usage
+			exit 0
+			;;
+		:)	exec >&2
+			echo "${IAM} option -{$OPTARG} requires and argument."
+			usage
+			exit 1
+			;;
+		\?)	exec >&2
+			echo "${IAM}: invalid option -{$OPTARG}."
+			usage
+			exit 1
+			;;
+	esac
+done
+shift $((OPTIND - 1))
 
 if [ -f "$1" ]; then
 	FILE=$1

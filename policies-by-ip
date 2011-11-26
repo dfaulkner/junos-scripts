@@ -2,9 +2,9 @@
 # policies-by-ip - show junos policies for a particular IP.
 # 
 # Read a junos config file in "display set" format and output a list
-# of policies that affect a given IP address based on source & destination zone.
-# For now, the IP is assumed the destination. We'll probably add a
-# source option eventually.
+# of policies that affect a given IP address based on source & 
+# destination zone. For now, the IP is assumed the destination. 
+# We'll probably add a source option eventually.
 
 IAM=$(basename $0)
 
@@ -19,7 +19,7 @@ TO_ZONE="[^ ]+"
 
 usage ()
 {
-	echo -e "usage: ${IAM} [ -h ] [ -z ] -f from -t to ( -d destination ) config"
+	echo -e "usage: ${IAM} [ -h ] [ -z ] -f from -t to ( -d destination ) [config]"
 	echo -e ""
 	echo -e "  -h\t: display this help"
 	echo -e "  -f\t: match policies affecting flows from this zone (from-zone)"
@@ -27,6 +27,7 @@ usage ()
 	echo -e "  -d\t: match this destination IP (destination-address)"
 	#echo -e "  -s\t: match this source IP (source-address)" #future 
 	echo -e "  -z\t: include from/to zone labels in output"
+	echo -e "  config\t: configuration file to read from. (default is \"${FILE}\")"
 	echo -e ""
 	echo -e "  IP addresses must be specified in dotted-quad format with and optional netmask"
 	echo -e "  e.g. 127.0.0.1 or 127.0.0.1/24"

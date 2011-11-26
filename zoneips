@@ -13,7 +13,11 @@ usage ()
 {
 	echo -e "usage: ${IAM} [ zone ] [ config ]"
 	echo -e ""
+	echo -e "show all IP networks (CIDRs) in a zone"
+	echo -e ""
 	echo -e "  -h\t: display this help"
+	echo -e "  zone\t: a valid zone in the junos config file"
+	echo -e "  config\t: the junos config file to examine. (default is \"${FILE}\")"
 }
 
 while getopts :h option; do
@@ -21,11 +25,41 @@ while getopts :h option; do
 		h)	usage
 			exit 0
 			;;
+		:)	exec >&2
+			echo "${IAM} option -{$OPTARG} requires and argument."
+			usage
+			exit 1
+			;;
+		\?)	exec >&2
+			echo "${IAM}: invalid option -{$OPTARG}."
+			usage
+			exit 1
+			;;
 	esac
 done
-shift $(($OPTIND - 1))
+shift $((OPTIND - 1))
 
-ZONE=$1
+if [[ $# = 2 ]]; then
+	ZONE=$1
+	if [ -f $2 ]; then
+		FILE=$2
+	else
+		exec >&2
+		echo "${IAM}: file $2 does not exist"
+		exit 1
+	fi
+elif [[ $# = 1 ]]; then
+	ZONE=$1
+else
+	usage
+	exit 1
+fi
+
+if ! $(grep -q -m 1 "security zones security-zone ${ZONE}" ${FILE}); then
+	exec >&2
+	echo -e "${IAM}: zone ${ZONE} not found in ${FILE}."
+	exit 1
+fi
 
 sortip()
 {

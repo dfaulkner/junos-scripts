@@ -22,8 +22,8 @@ usage()
 {
 	echo -e "usage: ${IAM} ip_address[/mask]"
 	echo -e ""
-	echo -e "ip_address\t: IP address in standard \"dotted-quad\" notation"
-	echo -e "mask\t\t: Netmask in CIDR notation, an integer in the range 0-32. Default: ${MASK}"
+	echo -e "  ip_address\t: IP address in standard \"dotted-quad\" notation"
+	echo -e "  mask\t\t: Netmask in CIDR notation, an integer in the range 0-32. Default: ${MASK}"
 	echo -e ""
 	echo -e "examples:"
 	echo -e "  ${IAM} 192.168.14.7\toutput all CIDRS: 192.168.14.7/32 : 192.168.0.0/16"
