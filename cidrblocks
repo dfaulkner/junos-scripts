@@ -1,19 +1,69 @@
 #!/bin/bash
-
+# cidrblocks - list all CIDR blocks that contain the given IP address
+# 
 # output a list of all CIDR blocks that contain the supplied IP address.
 # start with /32 and get bigger (smaller mask) until the limit is reached.
 # by default enumerates every CIDR inside an old-style Class B subnet,
 # but that's changeable
-
-# Relies on sipcalc(1) or ipcalc(1) for actual CIDR calculations.
-# net=`sipcalc  $IP/$i|grep 'Network address' | cut -c20-`
-# ipcalc $IP/$i | awk '/Network/{print $2}'
-
+# 
+# This script relies on sipcalc(1) for actual CIDR calculations.
+# 
 # cidrblocks 192.168.8.8 	list everything from 192.168.8.8/32 through 192.168.0.0/16
 # cidrblocks 192.168.8.8 24	list everything from 192.168.8.8/32 through 192.168.8.0/24
 
-IP=$1
-MASK=${2:-16}	#default /16 unless specified
+IAM=$(basename $0)
+
+# Global settings.
+
+# Defaults, to be overridden by getopts below
+MASK=16		#default netmask length
+
+usage()
+{
+	echo -e "usage: ${IAM} ip_address[/mask]"
+	echo -e ""
+	echo -e "ip_address\t: IP address in standard \"dotted-quad\" notation"
+	echo -e "mask\t\t: Netmask in CIDR notation, an integer in the range 0-32. Default: ${MASK}"
+	echo -e ""
+	echo -e "examples:"
+	echo -e "  ${IAM} 192.168.14.7\toutput all CIDRS: 192.168.14.7/32 : 192.168.0.0/16"
+	echo -e "  ${IAM} 192.168.14.7/23\toutput all CIDRS: 192.168.14.7/32 : 192.168.14.0/23"
+}
+
+while getopts :h option; do
+	case "${option}" in
+		h)	usage
+			exit 0
+			;;
+		:)	exec >&2
+			echo "${IAM} option -{$OPTARG} requires and argument."
+			usage
+			exit 1
+			;;
+		\?)	exec >&2
+			echo "${IAM}: invalid option -{$OPTARG}."
+			usage
+			exit 1
+			;;
+	esac
+done
+shift $((OPTIND - 1))
+
+# the remaining argument should be the CIDR IP address.
+# match address/mask first, then address alone.
+if [[ "${1}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,2}$ ]]
+	then
+	IP=$(echo $1 | cut -d/ -f1)
+	MASK=$(echo $1 | cut -d/ -f2)
+elif [[ "${1}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]
+	then
+	IP=$(echo $1 | cut -d/ -f1)
+else
+	exec >&2
+	echo "${IAM}: must specify an IP address with optional /mask"
+	usage
+	exit 1				
+fi
 
 for (( i=32; i>=$MASK; i-- )); do
 	net=`sipcalc  $IP/$i | awk '/Network address/{print $4}'`
