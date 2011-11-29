@@ -102,13 +102,8 @@ echo -en "$IP"
 [ $PRINT_ZONES ] && echo -en "(${FROM_ZONE}:${TO_ZONE})"
 echo -en "\t"
 for i in `cidrblocks $IP/$MASK`; do egrep "${TO_ZONE} address-book.*$i" ${FILE} \
-	| awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO ".*destination-address " $8}' \
+	| awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO ".*destination-address (" $8 "|any)"}' \
 	| egrep -f - ${FILE} | awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO " policy " $9 " then permit"}' \
 	| egrep -f - ${FILE} | awk '{print $9}' | tr '\n' ' '
 done
-egrep "${FROM_ZONE} to-zone ${TO_ZONE}.*destination-address any" ${FILE} \
-	| egrep -f - ${FILE} | awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO " policy " $9 " then permit"}' \
-	| awk '{print $9}' | tr '\n' ' '
-echo;
-
-
+echo
