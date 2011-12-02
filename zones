@@ -1,0 +1,60 @@
+#!/bin/bash
+# zones - show all zones
+# 
+
+IAM=$(basename $0)
+
+# Global settings.
+
+# Defaults, to be overridden by getopts below
+FILE=current
+ZONE="[^ ]+"
+
+usage ()
+{
+	echo -e "usage: ${IAM} [ -c config ] [zone]"
+	echo -e ""
+	echo -e "show all IP networks (CIDRs) in a zone"
+	echo -e ""
+	echo -e "  -h\t: display this help"
+	echo -e "  zone\t: regex of a zone to look for. Default list all zones"
+	echo -e "  config\t: the junos config file to examine. (default is \"${FILE}\")"
+}
+
+while getopts :hc: option; do
+	case "${option}" in
+		h)	usage
+			exit 0
+			;;
+		c)	if [ -f "${OPTARG}" ]; then
+				FILE="${OPTARG}"
+			else
+				exec >&2
+				echo "${IAM}: file ${OPTARG} doesn't exist"
+				exit 1
+			fi
+			;;
+		:)	exec >&2
+			echo "${IAM} option -{$OPTARG} requires and argument."
+			usage
+			exit 1
+			;;
+		\?)	exec >&2
+			echo "${IAM}: invalid option -{$OPTARG}."
+			usage
+			exit 1
+			;;
+	esac
+done
+shift $((OPTIND - 1))
+
+if [[ $# > 1 ]]; then
+	exec >&2
+	echo "${IAM}: only one zone regex at a time, please"
+	exit 1
+elif [[ $# = 1 ]]; then
+	ZONE="[^ ]*$1[^ ]*"
+fi
+
+# the basic idea:
+egrep "set security zones security-zone ${ZONE} " current | awk '{print $5}' | sort -u
