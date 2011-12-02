@@ -9,19 +9,21 @@ IAM=$(basename $0)
 # Defaults, to be overridden by getopts below
 FILE=current
 ZONE="[^ ]+"
+CASE=""
 
 usage ()
 {
-	echo -e "usage: ${IAM} [ -c config ] [zone]"
+	echo -e "usage: ${IAM} [ -i] [ -c config ] [zone]"
 	echo -e ""
 	echo -e "show all IP networks (CIDRs) in a zone"
 	echo -e ""
 	echo -e "  -h\t: display this help"
+	echo -e "  -i\t: case-insensitive search (only makes sense which searching for a pattern)"
 	echo -e "  zone\t: regex of a zone to look for. Default list all zones"
 	echo -e "  config\t: the junos config file to examine. (default is \"${FILE}\")"
 }
 
-while getopts :hc: option; do
+while getopts :hc:i option; do
 	case "${option}" in
 		h)	usage
 			exit 0
@@ -33,6 +35,8 @@ while getopts :hc: option; do
 				echo "${IAM}: file ${OPTARG} doesn't exist"
 				exit 1
 			fi
+			;;
+		i)	CASE="-i"
 			;;
 		:)	exec >&2
 			echo "${IAM} option -{$OPTARG} requires and argument."
@@ -57,4 +61,4 @@ elif [[ $# = 1 ]]; then
 fi
 
 # the basic idea:
-egrep "set security zones security-zone ${ZONE} " current | awk '{print $5}' | sort -u
+egrep $CASE "set security zones security-zone ${ZONE} " current | awk '{print $5}' | sort -u
