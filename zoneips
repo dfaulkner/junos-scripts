@@ -11,19 +11,27 @@ FILE=current
 
 usage ()
 {
-	echo -e "usage: ${IAM} [ zone ] [ config ]"
+	echo -e "usage: ${IAM} [ -c config ] [ zone ]"
 	echo -e ""
 	echo -e "show all IP networks (CIDRs) in a zone"
 	echo -e ""
 	echo -e "  -h\t: display this help"
+	echo -e "  -c\t: configuration file to read from. (default is \"${FILE}\")"
 	echo -e "  zone\t: a valid zone in the junos config file"
-	echo -e "  config\t: the junos config file to examine. (default is \"${FILE}\")"
 }
 
-while getopts :h option; do
+while getopts :hc: option; do
 	case "${option}" in
 		h)	usage
 			exit 0
+			;;
+		c)	if [ -f "${OPTARG}" ]; then
+				FILE="${OPTARG}"
+			else
+				exec >&2
+				echo "${IAM}: file ${OPTARG} doesn't exist"
+				exit 1
+			fi
 			;;
 		:)	exec >&2
 			echo "${IAM} option -{$OPTARG} requires and argument."
@@ -39,16 +47,7 @@ while getopts :h option; do
 done
 shift $((OPTIND - 1))
 
-if [[ $# = 2 ]]; then
-	ZONE=$1
-	if [ -f $2 ]; then
-		FILE=$2
-	else
-		exec >&2
-		echo "${IAM}: file $2 does not exist"
-		exit 1
-	fi
-elif [[ $# = 1 ]]; then
+if [[ $# = 1 ]]; then
 	ZONE=$1
 else
 	usage

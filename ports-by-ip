@@ -14,20 +14,28 @@ FILE=current
 
 usage ()
 {
-	echo -e "usage:\tcat policy-list | ${IAM} [config]"
+	echo -e "usage:\tcat policy-list | ${IAM} [ -c config]"
 	echo -e "\tpolices-by-ip ... | ${IAM} [config]"
 	echo -e ""
 	echo -e "Read the policies for each IP and output a list of ports permitted."
 	echo -e ""
 	echo -e "  -h\t: display this help"
+	echo -e "  -c\t: configuration file to read from. (default is \"${FILE}\")"
 	echo -e "  policy-list\t: output from policies-by-ip"
-	echo -e "  config\t: configuration file to read from. (default is \"${FILE}\")"
 }
 
-while getopts :h option; do
+while getopts :hc: option; do
 	case "${option}" in
 		h)	usage
 			exit 0
+			;;
+		c)	if [ -f "${OPTARG}" ]; then
+				FILE="${OPTARG}"
+			else
+				exec >&2
+				echo "${IAM}: file ${OPTARG} doesn't exist"
+				exit 1
+			fi
 			;;
 		:)	exec >&2
 			echo "${IAM} option -{$OPTARG} requires and argument."
@@ -42,10 +50,6 @@ while getopts :h option; do
 	esac
 done
 shift $((OPTIND - 1))
-
-if [ -f "$1" ]; then
-	FILE=$1
-fi
 
 FILE="${FILE} ${JUNOS_DEFAULTS}"
 
