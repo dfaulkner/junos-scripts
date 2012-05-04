@@ -122,8 +122,15 @@ echo -en "$IP"
 echo -en "\t"
 for i in `cidrblocks $IP/$MASK`; do echo $i; done | tr '\n' '|' | sed 's/|$//' \
 	| awk -v TO="${TO_ZONE}" '{print TO " address-book.*(" $1 ")"}' \
-	| egrep -f - ${FILE} | awk '{print $8}' | tr '\n' '|' \
-	| awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO ".*destination-address (" $1 "any)"}' \
+	| egrep -f - ${FILE} | awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" \
+		'{address[i++]=$8}
+		 END {
+			ORS="";
+			print FROM " to-zone " TO ".*destination-address (";
+			ORS="|";
+			for (i in address) print address[i];
+			ORS="\n"; print "any)"
+		 }' \
 	| egrep -f - ${FILE} | awk -v FROM="${FROM_ZONE}" -v TO="${TO_ZONE}" '{print FROM " to-zone " TO " policy " $9 " then permit"}' \
 	| egrep -f - ${FILE} | awk '{print $9}' | tr '\n' ' '
 echo
