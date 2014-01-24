@@ -1,3 +1,9 @@
 A collection of scripts to parse and analyze JunOS config files
 
 
+DEPENDENCIES
+
+sipcalc        http://www.routemeister.net/projects/sipcalc/
+Packages available for most major distributions
+sipcalc derives the network address from a CIDR-notation address.
+
